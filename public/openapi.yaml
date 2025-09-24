@@ -1,0 +1,396 @@
+openapi: 3.0.3
+info:
+  title: Fudo Challenge API
+  description: API profesional para gestión de productos con creación asíncrona
+  version: 1.0.0
+  contact:
+    name: Ignacio González Orellana
+    email: ignacio@example.com
+
+servers:
+  - url: http://localhost:9292
+    description: Servidor de desarrollo
+
+paths:
+  /auth:
+    post:
+      summary: Autenticar usuario
+      description: Autenticar con usuario y contraseña para obtener un session ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                  description: Nombre de usuario
+                password:
+                  type: string
+                  example: password
+                  description: Contraseña del usuario
+      responses:
+        '200':
+          description: Autenticación exitosa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Authentication successful
+                  session_id:
+                    type: string
+                    example: abc123def456
+                  expires_at:
+                    type: string
+                    format: date-time
+                    example: "2023-12-01T15:30:00Z"
+        '400':
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products:
+    post:
+      summary: Crear producto asíncronamente
+      description: Inicia la creación asíncrona de un producto (estará disponible después de 5 segundos)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Producto de Ejemplo"
+                  maxLength: 255
+                  description: Nombre del producto
+      responses:
+        '202':
+          description: Creación de producto iniciada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Product creation initiated
+                  job_id:
+                    type: string
+                    example: job123abc
+                    description: ID del trabajo para consultar el estado
+                  status:
+                    type: string
+                    example: pending
+                    enum: [pending, processing, completed, failed]
+                  estimated_completion:
+                    type: string
+                    format: date-time
+                    example: "2023-12-01T15:30:05Z"
+        '400':
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: Obtener todos los productos
+      description: Recupera todos los productos creados
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  total:
+                    type: integer
+                    example: 5
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/{id}:
+    get:
+      summary: Obtener producto por ID
+      description: Recupera un producto específico por su ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  product:
+                    $ref: '#/components/schemas/Product'
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/status:
+    get:
+      summary: Consultar estado de creación de producto
+      description: Verifica el estado de un trabajo de creación asíncrona de producto
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: job_id
+          in: query
+          required: true
+          schema:
+            type: string
+          example: job123abc
+          description: ID del trabajo retornado al crear el producto
+      responses:
+        '200':
+          description: Información del estado del trabajo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  job:
+                    $ref: '#/components/schemas/Job'
+        '400':
+          description: job_id requerido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trabajo no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/stats:
+    get:
+      summary: Estadísticas de productos
+      description: Obtiene estadísticas generales sobre productos y trabajos
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas del sistema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    type: object
+                    properties:
+                      total_products:
+                        type: integer
+                        example: 10
+                      pending_jobs:
+                        type: integer
+                        example: 2
+                      completed_jobs:
+                        type: integer
+                        example: 8
+                      failed_jobs:
+                        type: integer
+                        example: 0
+
+  /openapi.yaml:
+    get:
+      summary: Obtener especificación OpenAPI
+      description: Retorna el archivo de especificación OpenAPI
+      responses:
+        '200':
+          description: Especificación OpenAPI
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+
+  /AUTHORS:
+    get:
+      summary: Obtener información de autores
+      description: Retorna información sobre los autores de la API
+      responses:
+        '200':
+          description: Información de autores
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /health:
+    get:
+      summary: Verificación de salud
+      description: Endpoint para verificar que la API está funcionando
+      responses:
+        '200':
+          description: API funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: ID único del producto
+        name:
+          type: string
+          example: "Producto de Ejemplo"
+          description: Nombre del producto
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-12-01T15:30:00Z"
+          description: Fecha y hora de creación
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+          example: job123abc
+          description: ID único del trabajo
+        product_name:
+          type: string
+          example: "Producto de Ejemplo"
+          description: Nombre del producto a crear
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          example: completed
+          description: Estado actual del trabajo
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-12-01T15:30:00Z"
+        estimated_completion:
+          type: string
+          format: date-time
+          example: "2023-12-01T15:30:05Z"
+        product_id:
+          type: integer
+          example: 1
+          description: ID del producto creado (solo cuando status es completed)
+        error_message:
+          type: string
+          example: "Error creating product"
+          description: Mensaje de error (solo cuando status es failed)
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Mensaje de error"
+          description: Descripción del error
+        success:
+          type: boolean
+          example: false
+          description: Indica si la operación fue exitosa
+        code:
+          type: string
+          example: "INVALID_INPUT"
+          description: Código de error específico (opcional)
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Use el session_id retornado del endpoint /auth como Bearer token

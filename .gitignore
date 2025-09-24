@@ -1,0 +1,35 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Ruby/Bundler
+vendor/bundle/
+.bundle/
+Gemfile.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.simplecov
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+# RSpec
+spec/examples.txt
+
+# Docker
+.dockerignore
