@@ -51,7 +51,7 @@ module FudoApi
         use FudoApi::Middleware::AuthMiddleware, app_instance.instance_variable_get(:@auth_service)
         
         # Main application
-        run app_instance.method(:dispatch)
+        run ->(env) { app_instance.dispatch(env) }
       end
     end
     
