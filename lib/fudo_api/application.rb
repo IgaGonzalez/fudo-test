@@ -33,28 +33,6 @@ module FudoApi
       @app.call(env)
     end
     
-    private
-    
-    def build_middleware_stack
-      # Store self reference for the builder
-      app_instance = self
-      
-      # Build the middleware stack
-      Rack::Builder.new do
-        # Error handling (outermost)
-        use FudoApi::Middleware::ErrorHandler
-        
-        # Gzip compression
-        use Rack::Deflater
-        
-        # Authentication middleware
-        use FudoApi::Middleware::AuthMiddleware, app_instance.instance_variable_get(:@auth_service)
-        
-        # Main application
-        run ->(env) { app_instance.dispatch(env) }
-      end
-    end
-    
     def dispatch(env)
       request = Rack::Request.new(env)
       
@@ -84,6 +62,28 @@ module FudoApi
         controller.public_send(method_name)
       else
         not_found_response
+      end
+    end
+    
+    private
+    
+    def build_middleware_stack
+      # Store self reference for the builder
+      app_instance = self
+      
+      # Build the middleware stack
+      Rack::Builder.new do
+        # Error handling (outermost)
+        use FudoApi::Middleware::ErrorHandler
+        
+        # Gzip compression
+        use Rack::Deflater
+        
+        # Authentication middleware
+        use FudoApi::Middleware::AuthMiddleware, app_instance.instance_variable_get(:@auth_service)
+        
+        # Main application
+        run ->(env) { app_instance.dispatch(env) }
       end
     end
     
